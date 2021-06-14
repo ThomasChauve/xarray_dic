@@ -1,0 +1,9 @@
+name: envDIC
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - numpy
+  - xarray
+  - pip
