@@ -2,9 +2,85 @@ import xarray as xr
 import numpy as np
 import os
 
+
+def load7D(adr_data, resolution, time_step,unit_time='min',unit_res='millimeter'):
+        '''
+        :param adr_data: folder path where the 7D output are store
+        :type adr_data: str
+        :param resolution: pixel size of the image used for DIC (millimeters)
+        :type resolution: float
+        :param time_step: time step between the picture (seconds)
+        :type time_step: float
+        :param adr_micro: path for the black and white skeleton of the microstructure (bmp format) (default 0 - no microstructure)
+        :type adr_micro: str
+        '''
+        
+        # include time_step in the object
+        time=time_step
+                
+        # find out file from 7D
+        output=os.listdir(adr_data)
+        output.sort()
+        # loop on all the output
+        all_sT=[]
+        all_da=[]
+        for i in list(range(len(output))):
+            # load the file
+            data=np.loadtxt(adr_data + '/' + output[i])
+            # find not indexed point
+            id=np.where(data[:,4]!=0.0)
+            # replace not indexed point by NaN value
+            data[id,2:4]=np.NaN
+            data[id,5:8]=np.NaN
+            # for the first step it extract size sx,sy and window correlation value used in 7D
+            if (i==0):
+                n_dic=np.abs(data[0,1]-data[1,1])
+                nb_pix=np.size(data[:,0])
+                sx=np.int32(np.abs(data[0,0]-data[nb_pix-1,0])/n_dic+1)
+                sy=np.int32(np.abs(data[0,1]-data[nb_pix-1,1])/n_dic+1)
+                eij=np.zeros([sy,sx])
+                eij[:,:]=np.nan
+                
+            # Build image at time t=i
+            u=np.transpose(np.reshape(data[:,2]*resolution,[sx,sy]))
+            v=np.transpose(np.reshape(data[:,3]*resolution,[sx,sy]))
+            exx=np.transpose(np.reshape(data[:,5],[sx,sy]))
+            eyy=np.transpose(np.reshape(data[:,6],[sx,sy]))
+            exy=np.transpose(np.reshape(data[:,7],[sx,sy]))
+            all_sT.append(np.dstack((exx,eyy,eij,exy,eij,eij)))
+            all_da.append(np.dstack((u,v)))
+            dx=np.linspace(0,n_dic*resolution*(sx-1),sx)
+            dy=np.linspace(0,n_dic*resolution*(sy-1),sy)
+            
+        dsT=xr.DataArray(np.stack(all_sT),dims=['time','y','x','sT'])
+        da=xr.DataArray(np.stack(all_da),dims=['time','y','x','d'])
+
+        time=np.linspace(time_step,time_step*len(output),len(output))
+
+        ds = xr.Dataset(
+        {   
+            "displacement": da,
+            "strain": dsT,
+
+        },
+        )
+        ds.coords['x']=dx
+        ds.coords['y']=dy
+        ds.coords['time']=time
+
+        ds.attrs["unit_time"]=unit_time
+        ds.attrs["step_size"]=resolution
+        ds.attrs["unit_position"]=unit_res
+        ds.attrs["window_size"]=int(n_dic)
+        ds.attrs["path_dat"]=adr_data
+        ds.attrs["DIC_software"]='7D'
+        
+        return ds
+    
+
 def loadDICe(adr_data, resolution, time_step,unit_time='min',unit_res='millimeter',strain_com=1):
     '''
-    :param adr_data: folder path where the 7D output are store
+    :param adr_data: folder path where the DICe output are store
     :type adr_data: str
     :param resolution: pixel size of the image used for DIC (millimeters)
     :type resolution: float
@@ -96,19 +172,10 @@ def loadDICe(adr_data, resolution, time_step,unit_time='min',unit_res='millimete
                 empty,
             ))
         
-#         sT[np.isnan(sT[:,:,1]),0]=np.nan
-#         sT[np.isnan(sT[:,:,1]),3]=np.nan
-
-#         sT[np.isnan(sT[:,:,0]),1]=np.nan
-#         sT[np.isnan(sT[:,:,0]),3]=np.nan
-
-#         sT[np.isnan(sT[:,:,3]),1]=np.nan
-#         sT[np.isnan(sT[:,:,3]),0]=np.nan
-        
         all_sT.append(sT)
        
     dsT=xr.DataArray(np.stack(all_sT),dims=['time','yt','xt','sT'])
-    da=xr.DataArray(np.stack(all_da),dims=['time','yd','xd','d'])
+    da=xr.DataArray(np.stack(all_da),dims=['time','y','x','d'])
     
     time=np.linspace(time_step,time_step*len(output),len(output))
     
@@ -119,8 +186,8 @@ def loadDICe(adr_data, resolution, time_step,unit_time='min',unit_res='millimete
 
     },
     )
-    ds.coords['xd']=dx
-    ds.coords['yd']=dy
+    ds.coords['x']=dx
+    ds.coords['y']=dy
     ds.coords['xt']=dx[1::]
     ds.coords['yt']=dy[1::]
     ds.coords['time']=time
@@ -130,6 +197,7 @@ def loadDICe(adr_data, resolution, time_step,unit_time='min',unit_res='millimete
     ds.attrs["unit_position"]=unit_res
     ds.attrs["window_size"]=int(n_dic)
     ds.attrs["path_dat"]=adr_data
+    ds.attrs["DIC_software"]='DICe'
             
             
     return ds#,sT,oxy

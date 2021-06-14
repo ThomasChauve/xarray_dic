@@ -36,8 +36,8 @@ class xarray_dic(object):
         '''
         
         if axis=='x':
-            sd=(np.nanmean(self._obj.displacement[...,:,-shift,0],axis=-1)-np.nanmean(self._obj.displacement[...,:,shift,0],axis=-1))/np.array((self._obj.xd[-shift]-self._obj.xd[shift]))
+            sd=(np.nanmean(self._obj.displacement[...,:,-shift,0],axis=-1)-np.nanmean(self._obj.displacement[...,:,shift,0],axis=-1))/np.array((self._obj.x[-shift]-self._obj.x[shift]))
         if axis=='y':
-            sd=(np.nanmean(self._obj.displacement[...,-shift,:,1],axis=-1)-np.nanmean(self._obj.displacement[...,shift,:,1],axis=-1))/np.array((self._obj.yd[-shift]-self._obj.yd[shift]))
+            sd=(np.nanmean(self._obj.displacement[...,-shift,:,1],axis=-1)-np.nanmean(self._obj.displacement[...,shift,:,1],axis=-1))/np.array((self._obj.y[-shift]-self._obj.y[shift]))
             
         return xr.DataArray(sd,dims=self._obj.displacement.coords.dims[0])          
