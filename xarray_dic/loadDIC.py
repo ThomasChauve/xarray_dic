@@ -172,6 +172,11 @@ def loadDICe(adr_data, resolution, time_step,unit_time='min',unit_res='millimete
                 empty,
             ))
         
+        
+        idx,idy=np.where((np.isnan(sT[:,:,0])+np.isnan(sT[:,:,1])+np.isnan(sT[:,:,3]))==True)
+        if len(idx)!=0:
+            sT[idx,idy,:]=np.nan
+        
         all_sT.append(sT)
        
     dsT=xr.DataArray(np.stack(all_sT),dims=['time','yt','xt','sT'])
