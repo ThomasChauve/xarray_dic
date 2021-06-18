@@ -22,7 +22,7 @@ VERSION = '0.1'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-#    'xarray','numpy','matplotlib','scikit-image'
+    'xarray','numpy','matplotlib','scikit-image'
 ]
 
 # What packages are optional?
